@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Data;
+using System.Net.Http.Headers;
 using System.Numerics;
+using System.Reflection;
 
 namespace MyApp // Note: actual namespace depends on the project name.
 {
@@ -9,73 +11,132 @@ namespace MyApp // Note: actual namespace depends on the project name.
         static Random rnd = new Random();
         static string[,] TTTBoard = initializeBoard();
         static List<string> Pool = new List<string>();
-        static List<string> moves = new List<string>();
-        static string Player = "Human";
+        static List<string> playermoves = new List<string>();
+        static string Player = "";
         static void Main(string[] args)
         {
+            gameLoop(); 
+        }
 
-            string Player = firstMove();
+        static void gameLoop()
+        {
             display(TTTBoard);
+            string Player = firstMove();
+
             while (true)
             {
-                List<string> playermoves = playerMove(Player, TTTBoard);
-                changeBoard(TTTBoard, playermoves[0], playermoves[1], Player);
-                display(TTTBoard);
+                // playermoves gets the coordinates of their moves
+                playermoves = playerMove(Player);
+                // updates board from data coming from playermoves
+                updateBoard(playermoves[0], playermoves[1], Player);
+                // checks if there's a winner
+                //if (checkWinner(Player, playermoves[0], playermoves[1]))
+                //{
+                //    if (continuePlaying())
+                //        continue;
+                //    else
+                //        break;
+                //}
+                // if populated
+                if (isPopulated(TTTBoard))
+                {
+                    if (continuePlaying())
+                        continue;
+                    else
+                        break;
+                }
+                // changes player turn
                 Player = changePlayerTurn(Player);
             }
         }
 
-        static bool gameLoop()
+        static bool continuePlaying()
         {
-            return false;
+            Console.WriteLine("Continue Playing? \n Type YES to continue playing");
+            string temp = Console.ReadLine();
+            if (temp.ToUpper() == "YES")
+            {
+                clearBoard(TTTBoard);
+                display(TTTBoard);
+                return true;
+            }
+            else 
+                return false;
+        }
+
+        static bool checkWinner(string Player, string xcoor, string ycoor)
+        {
+            // Don't need to check all possible patterns, just need to check the last move then check the winner
+            return true; 
         }
 
         static string firstMove()
         {
-            if (rnd.Next(1, 100) % 2 == 0)
+            if (rnd.Next(1, 10) % 2 == 0)
                 Player = "Human" ;
             else
                 Player = "Computer";
-
+                
             return Player;
         }
 
-        static List<string> playerMove (string Player, string[,] board)
+        static List<string> validCoordinates(string[,] board)
+        {
+            Pool.Clear();
+            // lists all coordinates and puts it in a pool
+            for (int row = 0; row < board.GetLength(0); row++)
+                for (int column = 0; column < board.GetLength(1); column++)
+                    if (board[row, column] == null)
+                        Pool.Add(row.ToString() + column.ToString());
+
+            return Pool;
+        }
+
+        static bool isPopulated (string[,] board)
+        {
+            for (int row = 0; row < board.GetLength(0); row++)
+                for (int column = 0; column < board.GetLength(1); column++)
+                    if (board[row, column] == null)
+                        return false;
+
+            return true;
+        }
+
+        static List<string> playerMove (string Player)
         {
             string xcoor = "";
             string ycoor = "";
 
-            Pool.Clear();
-            moves.Clear();
+            // contains all valid moves
+            Pool = validCoordinates(TTTBoard);
 
             if ( Player == "Human" ) 
             {
-                Console.WriteLine("Enter X coordinate of your move");
-                xcoor = Console.ReadLine();
-                Console.WriteLine("Enter Y coordinate of your move");
-                ycoor = Console.ReadLine();
+                bool valid = false;
+                do
+                {
+                    Console.WriteLine("Enter X coordinate of your move");
+                    xcoor = Console.ReadLine();
+                    Console.WriteLine("Enter Y coordinate of your move");
+                    ycoor = Console.ReadLine();
+
+                    if (Pool.Contains(xcoor + ycoor))
+                        valid = true;
+                    else
+                        display(TTTBoard);
+                        
+
+                } while (!valid);
+
             }
 
             if ( Player == "Computer")
             {
-                // lists all coordinates and puts it in a pool
-                for (int row = 0; row < board.GetLength(0); row++)
-                    for (int column = 0; column < board.GetLength(1); column++)
-                        if (board[row, column] == null)
-                        {
-                            Pool.Add(row.ToString() + column.ToString());
-                            //Console.WriteLine(row.ToString() + column.ToString());
-                        }
 
                 // gets random coordinate from pool
                 int computerMove = rnd.Next(0,Pool.Count);
                 xcoor = Pool[computerMove][0].ToString();
                 ycoor = Pool[computerMove][1].ToString();
-
-                //Console.WriteLine("xcoor" + Pool[computerMove][0]);
-                //Console.WriteLine("ycoor" + Pool[computerMove][1]);
-
-
             }
 
             return new List<string> { xcoor, ycoor };
@@ -83,15 +144,13 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
         static string[,] initializeBoard()
         { 
-            string[,] Board = new string[3, 3];
-            return Board;
-        }
-
-        static string[,] clearBoard(string[,] Board)
-        {
             return new string[3, 3];
         }
 
+        static void clearBoard(string[,] Board)
+        {
+            TTTBoard = new string[3, 3];
+        }
 
         static string changePlayerTurn(string Player)
         {
@@ -101,35 +160,21 @@ namespace MyApp // Note: actual namespace depends on the project name.
                 return "Computer";
         }
 
-        static void ValidateMove()
+        static void updateBoard(string xcoor, string ycoor, string player)
         {
-
-        }
-
-        static string[,] changeBoard(string[,] Board, string xcoor, string ycoor, string player)
-        {
-            bool valid = false;
-            while (!valid)
+            if (TTTBoard[int.Parse(xcoor), int.Parse(ycoor)] == null)
             {
-                if (Board[int.Parse(xcoor), int.Parse(ycoor)] != null)
-                    valid = false;
-                else
-                {
-                    if (player == "Human")
-                        Board[int.Parse(xcoor), int.Parse(ycoor)] = "X";
-                    else
-                        Board[int.Parse(xcoor), int.Parse(ycoor)] = "O";
-                    valid = true;
-                }
-
-                Console.Write("Invalid move");
+                if (player == "Human")
+                    TTTBoard[int.Parse(xcoor), int.Parse(ycoor)] = "X";
+                else if (player == "Computer")
+                    TTTBoard[int.Parse(xcoor), int.Parse(ycoor)] = "O";
             }
-            return Board;
+            display(TTTBoard);
         }
 
         static void display(string[,] board)
         {
-            //Console.Clear();
+            Console.Clear();
             for (int row = 0; row < board.GetLength(0); row++)
             {
                 Console.WriteLine("\n -------------------------------------------------");
